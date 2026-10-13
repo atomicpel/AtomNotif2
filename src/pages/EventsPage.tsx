@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Bell, Camera, Clock, User, Car, PawPrint, ChevronRight, Play, Film } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Bell, Camera, Clock, User, Car, PawPrint, Play, Film, ExternalLink, WifiOff } from 'lucide-react';
+import { API_BASE, checkConnection, getEventsPageUrl, getClipUrl, getSnapshotUrl } from '../api';
 
 interface Event {
   id: number;
@@ -9,9 +10,10 @@ interface Event {
   labels: string[];
   hasClip: boolean;
   hasRecording: boolean;
+  snap?: string;
 }
 
-const events: Event[] = [
+const demoEvents: Event[] = [
   { id: 1, cam: 'Вход', ts: '2026-10-13 14:32:15', time: '14:32:15', labels: ['человек'], hasClip: true, hasRecording: true },
   { id: 2, cam: 'Двор', ts: '2026-10-13 14:28:03', time: '14:28:03', labels: ['человек', 'машина'], hasClip: true, hasRecording: true },
   { id: 3, cam: 'Калитка', ts: '2026-10-13 14:15:47', time: '14:15:47', labels: ['человек'], hasClip: true, hasRecording: true },
@@ -39,126 +41,216 @@ const labelColors: Record<string, string> = {
 export default function EventsPage() {
   const [selectedDate, setSelectedDate] = useState('2026-10-13');
   const [filter, setFilter] = useState<string>('all');
+  const [serverConnected, setServerConnected] = useState<boolean | null>(null);
+  const [viewMode, setViewMode] = useState<'app' | 'server'>('app');
+  const [events, setEvents] = useState<Event[]>(demoEvents);
+
+  useEffect(() => {
+    checkConnection().then(connected => {
+      setServerConnected(connected);
+    });
+  }, []);
 
   const filtered = filter === 'all' ? events : events.filter(e => e.labels.includes(filter));
 
   return (
     <div className="space-y-6">
+      {/* Server status */}
+      {serverConnected === false && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <WifiOff className="w-5 h-5 text-amber-400" />
+            <div className="flex-1">
+              <p className="text-xs text-amber-400">Сервер недоступен — отображаются демо-данные</p>
+            </div>
+            <a
+              href={API_BASE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-medium hover:bg-amber-500/30 transition flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3 h-3" /> Открыть сервер
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">События</h2>
           <p className="text-sm text-gray-500 mt-1">Обнаруженные движения и объекты</p>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={e => setSelectedDate(e.target.value)}
-          className="bg-[#161b22] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-        />
-        <div className="flex items-center bg-[#161b22] rounded-lg border border-gray-800 p-0.5">
-          {[
-            { key: 'all', label: 'Все' },
-            { key: 'человек', label: '👤 Люди' },
-            { key: 'машина', label: '🚗 Машины' },
-            { key: 'животное', label: '🐾 Животные' },
-          ].map(({ key, label }) => (
+        {serverConnected && (
+          <div className="flex items-center bg-[#161b22] rounded-lg border border-gray-800 p-0.5">
             <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
-                filter === key ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'
-              }`}
+              onClick={() => setViewMode('app')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === 'app' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
             >
-              {label}
+              Этот интерфейс
             </button>
-          ))}
-        </div>
+            <button
+              onClick={() => setViewMode('server')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === 'server' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Страница сервера
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Событий сегодня</p>
-          <p className="text-2xl font-bold mt-1">{events.length}</p>
+      {/* Server page iframe */}
+      {viewMode === 'server' && serverConnected && (
+        <div className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="p-2 border-b border-gray-800 flex items-center justify-between">
+            <span className="text-xs text-gray-500">Страница событий сервера</span>
+            <a
+              href={getEventsPageUrl(selectedDate)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+            >
+              <ExternalLink className="w-3 h-3" /> В новой вкладке
+            </a>
+          </div>
+          <iframe
+            src={getEventsPageUrl(selectedDate)}
+            className="w-full h-[600px] border-0"
+            title="События сервера"
+          />
         </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Люди</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">{events.filter(e => e.labels.includes('человек')).length}</p>
-        </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Машины</p>
-          <p className="text-2xl font-bold mt-1 text-blue-400">{events.filter(e => e.labels.includes('машина')).length}</p>
-        </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Видео событий</p>
-          <p className="text-2xl font-bold mt-1 text-purple-400">{events.filter(e => e.hasClip).length}</p>
-        </div>
-      </div>
+      )}
 
-      {/* Events list */}
-      <div className="space-y-3">
-        {filtered.map(ev => (
-          <div key={ev.id} className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden hover:border-gray-700 transition">
-            <div className="flex flex-col sm:flex-row">
-              {/* Snapshot placeholder */}
-              <div className="sm:w-48 aspect-video sm:aspect-auto bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative">
-                <Camera className="w-8 h-8 text-gray-700" />
-                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[10px] text-gray-400">
-                  {ev.cam}
-                </div>
-                {ev.hasClip && (
-                  <div className="absolute top-1 right-1 p-1 rounded bg-black/60">
-                    <Film className="w-3 h-3 text-purple-400" />
-                  </div>
-                )}
-              </div>
-              {/* Info */}
-              <div className="flex-1 p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-sm">{ev.cam}</h3>
-                      <span className="text-xs text-gray-600">•</span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {ev.time}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {ev.labels.map(label => {
-                        const Icon = labelIcons[label] || Bell;
-                        return (
-                          <span key={label} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${labelColors[label] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
-                            <Icon className="w-3 h-3" />
-                            {label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 mt-3">
-                  {ev.hasClip && (
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 text-xs font-medium hover:bg-purple-500/20 transition border border-purple-500/20">
-                      <Play className="w-3 h-3" /> Видео события
-                    </button>
-                  )}
-                  {ev.hasRecording && (
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 text-xs font-medium hover:bg-cyan-500/20 transition border border-cyan-500/20">
-                      <Film className="w-3 h-3" /> Полная запись
-                    </button>
-                  )}
-                </div>
-              </div>
+      {/* App view */}
+      {viewMode === 'app' && (
+        <>
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="bg-[#161b22] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
+            />
+            <div className="flex items-center bg-[#161b22] rounded-lg border border-gray-800 p-0.5">
+              {[
+                { key: 'all', label: 'Все' },
+                { key: 'человек', label: '👤 Люди' },
+                { key: 'машина', label: '🚗 Машины' },
+                { key: 'животное', label: '🐾 Животные' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                    filter === key ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+              <p className="text-xs text-gray-500">Событий сегодня</p>
+              <p className="text-2xl font-bold mt-1">{events.length}</p>
+            </div>
+            <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+              <p className="text-xs text-gray-500">Люди</p>
+              <p className="text-2xl font-bold mt-1 text-amber-400">{events.filter(e => e.labels.includes('человек')).length}</p>
+            </div>
+            <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+              <p className="text-xs text-gray-500">Машины</p>
+              <p className="text-2xl font-bold mt-1 text-blue-400">{events.filter(e => e.labels.includes('машина')).length}</p>
+            </div>
+            <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+              <p className="text-xs text-gray-500">Видео событий</p>
+              <p className="text-2xl font-bold mt-1 text-purple-400">{events.filter(e => e.hasClip).length}</p>
+            </div>
+          </div>
+
+          {/* Events list */}
+          <div className="space-y-3">
+            {filtered.map(ev => (
+              <div key={ev.id} className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden hover:border-gray-700 transition">
+                <div className="flex flex-col sm:flex-row">
+                  {/* Snapshot */}
+                  <div className="sm:w-48 aspect-video sm:aspect-auto bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative">
+                    {ev.snap ? (
+                      <img
+                        src={getSnapshotUrl(ev.snap)}
+                        alt={ev.cam}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Camera className="w-8 h-8 text-gray-700" />
+                    )}
+                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[10px] text-gray-400">
+                      {ev.cam}
+                    </div>
+                    {ev.hasClip && (
+                      <div className="absolute top-1 right-1 p-1 rounded bg-black/60">
+                        <Film className="w-3 h-3 text-purple-400" />
+                      </div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-sm">{ev.cam}</h3>
+                          <span className="text-xs text-gray-600">•</span>
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {ev.time}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {ev.labels.map(label => {
+                            const Icon = labelIcons[label] || Bell;
+                            return (
+                              <span key={label} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${labelColors[label] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                                <Icon className="w-3 h-3" />
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 mt-3">
+                      {ev.hasClip && serverConnected && (
+                        <a
+                          href={getEventsPageUrl(selectedDate)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 text-xs font-medium hover:bg-purple-500/20 transition border border-purple-500/20"
+                        >
+                          <Play className="w-3 h-3" /> Видео события
+                        </a>
+                      )}
+                      {ev.hasRecording && serverConnected && (
+                        <a
+                          href={getEventsPageUrl(selectedDate)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 text-xs font-medium hover:bg-cyan-500/20 transition border border-cyan-500/20"
+                        >
+                          <Film className="w-3 h-3" /> Полная запись
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

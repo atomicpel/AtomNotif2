@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Camera, Wifi, WifiOff, Play, Maximize2, Settings, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, Wifi, WifiOff, Maximize2, Eye, ExternalLink } from 'lucide-react';
+import { API_BASE, checkConnection, getFrameUrl, getProxiedStreamUrl } from '../api';
 
 interface CameraData {
   name: string;
@@ -11,7 +12,8 @@ interface CameraData {
   type: string;
 }
 
-const cameras: CameraData[] = [
+// Демо-данные на случай если сервер недоступен
+const demoCameras: CameraData[] = [
   { name: 'Вход', online: true, recording: true, detecting: true, url: 'rtsp://192.168.1.10:554/stream1', lastMotion: '2 мин назад', type: 'Hikvision DS-2CD' },
   { name: 'Двор', online: true, recording: true, detecting: true, url: 'rtsp://192.168.1.11:554/stream1', lastMotion: '15 мин назад', type: 'Dahua IPC-HDW' },
   { name: 'Гараж', online: true, recording: true, detecting: true, url: 'rtsp://192.168.1.12:554/stream1', lastMotion: '1 час назад', type: 'Reolink RLC-810A' },
@@ -23,12 +25,60 @@ const cameras: CameraData[] = [
 export default function CamerasPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'single'>('grid');
   const [selectedCam, setSelectedCam] = useState<string | null>(null);
-  const [mode, setMode] = useState<'webrtc' | 'hls'>('webrtc');
+  const [mode, setMode] = useState<'webrtc' | 'hls'>('hls');
+  const [serverConnected, setServerConnected] = useState<boolean | null>(null);
+  const [cameras, setCameras] = useState<CameraData[]>(demoCameras);
+
+  useEffect(() => {
+    // Проверяем соединение с сервером
+    checkConnection().then(connected => {
+      setServerConnected(connected);
+      if (connected) {
+        console.log('✅ Сервер видеонаблюдения доступен на', API_BASE);
+      } else {
+        console.warn('⚠️ Сервер видеонаблюдения недоступен, используются демо-данные');
+      }
+    });
+  }, []);
 
   const onlineCount = cameras.filter(c => c.online).length;
 
   return (
     <div className="space-y-6">
+      {/* Server status banner */}
+      {serverConnected === false && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <WifiOff className="w-5 h-5 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-amber-400">Сервер видеонаблюдения недоступен</h3>
+              <p className="text-xs text-amber-400/70 mt-0.5">
+                Убедитесь что cctv_server.py запущен на порту 8080. Отображаются демо-данные.
+              </p>
+            </div>
+            <a
+              href={API_BASE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-medium hover:bg-amber-500/30 transition flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3 h-3" /> Открыть сервер
+            </a>
+          </div>
+        </div>
+      )}
+
+      {serverConnected === true && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs text-emerald-400">Подключено к серверу: {API_BASE}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -40,16 +90,16 @@ export default function CamerasPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-[#161b22] rounded-lg border border-gray-800 p-0.5">
             <button
-              onClick={() => setMode('webrtc')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${mode === 'webrtc' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
-            >
-              WebRTC
-            </button>
-            <button
               onClick={() => setMode('hls')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${mode === 'hls' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
             >
               HLS
+            </button>
+            <button
+              onClick={() => setMode('webrtc')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${mode === 'webrtc' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              WebRTC
             </button>
           </div>
           <div className="flex items-center bg-[#161b22] rounded-lg border border-gray-800 p-0.5">
@@ -97,9 +147,20 @@ export default function CamerasPage() {
               key={cam.name}
               className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden hover:border-gray-700 transition group"
             >
-              {/* Video placeholder */}
+              {/* Video frame */}
               <div className="relative aspect-video bg-black">
-                {cam.online ? (
+                {cam.online && serverConnected ? (
+                  // Реальный кадр с сервера
+                  <img
+                    src={getFrameUrl(cam.name)}
+                    alt={cam.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : cam.online ? (
+                  // Демо-заглушка
                   <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
                     <div className="text-center">
                       <div className="relative">
@@ -109,10 +170,6 @@ export default function CamerasPage() {
                         <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 animate-pulse" />
                       </div>
                       <p className="text-xs text-gray-500 mt-2">Поток активен</p>
-                    </div>
-                    {/* Scan line effect */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                      <div className="absolute w-full h-px bg-emerald-500/20 animate-scan" />
                     </div>
                   </div>
                 ) : (
@@ -125,9 +182,22 @@ export default function CamerasPage() {
                 )}
                 {/* Overlay controls */}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                  <button className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white">
+                  <button
+                    onClick={() => { setSelectedCam(cam.name); setViewMode('single'); }}
+                    className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white"
+                  >
                     <Maximize2 className="w-3.5 h-3.5" />
                   </button>
+                  {serverConnected && (
+                    <a
+                      href={getProxiedStreamUrl(cam.name, mode)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
                 {/* Status badge */}
                 <div className="absolute top-2 left-2">
@@ -180,16 +250,59 @@ export default function CamerasPage() {
             ))}
           </div>
           <div className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden">
-            <div className="aspect-video bg-black flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-24 h-24 rounded-full border-2 border-emerald-500/30 flex items-center justify-center mx-auto mb-3">
-                  <Camera className="w-10 h-10 text-emerald-500/60" />
-                </div>
-                <p className="text-sm text-gray-400">{selectedCam || 'Выберите камеру'}</p>
-                <p className="text-xs text-gray-600 mt-1">Режим: {mode.toUpperCase()}</p>
+            {selectedCam && serverConnected ? (
+              // Реальный поток через iframe
+              <div className="aspect-video">
+                <iframe
+                  src={getProxiedStreamUrl(selectedCam, mode)}
+                  className="w-full h-full border-0"
+                  title={`Поток ${selectedCam}`}
+                  allow="autoplay; fullscreen"
+                />
               </div>
-            </div>
+            ) : (
+              <div className="aspect-video bg-black flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-24 h-24 rounded-full border-2 border-emerald-500/30 flex items-center justify-center mx-auto mb-3">
+                    <Camera className="w-10 h-10 text-emerald-500/60" />
+                  </div>
+                  <p className="text-sm text-gray-400">{selectedCam || 'Выберите камеру'}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {serverConnected ? `Режим: ${mode.toUpperCase()}` : 'Запустите сервер для просмотра потока'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
+          {/* Quick links */}
+          {serverConnected && selectedCam && (
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={getProxiedStreamUrl(selectedCam, 'hls')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#161b22] border border-gray-800 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-700 transition"
+              >
+                <ExternalLink className="w-3 h-3" /> HLS поток
+              </a>
+              <a
+                href={getFrameUrl(selectedCam)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#161b22] border border-gray-800 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-700 transition"
+              >
+                <Camera className="w-3 h-3" /> Текущий кадр
+              </a>
+              <a
+                href={`${API_BASE}/zones/${selectedCam}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#161b22] border border-gray-800 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-700 transition"
+              >
+                <Eye className="w-3 h-3" /> Зоны игнорирования
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>
