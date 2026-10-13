@@ -1,193 +1,193 @@
-import { useState, useEffect } from 'react';
-import { Camera, WifiOff, Eye, Grid3x3, List, Maximize2 } from 'lucide-react';
-import { API_BASE, checkConnection, getFrameUrl, getProxiedStreamUrl } from '../api';
+import { useState } from 'react';
+import { Camera, Wifi, WifiOff, Play, Maximize2, Settings, Eye } from 'lucide-react';
 
 interface CameraData {
   name: string;
   online: boolean;
   recording: boolean;
   detecting: boolean;
-  type: string;
+  url: string;
   lastMotion: string;
+  type: string;
 }
 
-const demoCameras: CameraData[] = [
-  { name: 'Вход', online: true, recording: true, detecting: true, type: 'Hikvision', lastMotion: '2 мин' },
-  { name: 'Двор', online: true, recording: true, detecting: true, type: 'Dahua', lastMotion: '15 мин' },
-  { name: 'Гараж', online: true, recording: true, detecting: true, type: 'Reolink', lastMotion: '1 час' },
-  { name: 'Задний двор', online: false, recording: false, detecting: false, type: 'Axis', lastMotion: '3 дня' },
-  { name: 'Калитка', online: true, recording: true, detecting: true, type: 'Hikvision', lastMotion: '30 мин' },
-  { name: 'Парковка', online: true, recording: true, detecting: false, type: 'Dahua', lastMotion: '5 мин' },
+const cameras: CameraData[] = [
+  { name: 'Вход', online: true, recording: true, detecting: true, url: 'rtsp://192.168.1.10:554/stream1', lastMotion: '2 мин назад', type: 'Hikvision DS-2CD' },
+  { name: 'Двор', online: true, recording: true, detecting: true, url: 'rtsp://192.168.1.11:554/stream1', lastMotion: '15 мин назад', type: 'Dahua IPC-HDW' },
+  { name: 'Гараж', online: true, recording: true, detecting: true, url: 'rtsp://192.168.1.12:554/stream1', lastMotion: '1 час назад', type: 'Reolink RLC-810A' },
+  { name: 'Задний двор', online: false, recording: false, detecting: false, url: 'rtsp://192.168.1.13:554/stream1', lastMotion: '3 дня назад', type: 'Axis P3245-V' },
+  { name: 'Калитка', online: true, recording: true, detecting: true, url: 'rtsp://192.168.1.14:554/stream1', lastMotion: '30 мин назад', type: 'Hikvision DS-2CD' },
+  { name: 'Парковка', online: true, recording: true, detecting: false, url: 'rtsp://192.168.1.15:554/stream1', lastMotion: '5 мин назад', type: 'Dahua IPC-HDW' },
 ];
 
 export default function CamerasPage() {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'single'>('grid');
   const [selectedCam, setSelectedCam] = useState<string | null>(null);
-  const [serverConnected, setServerConnected] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<'webrtc' | 'hls'>('webrtc');
 
-  useEffect(() => {
-    checkConnection().then(setServerConnected);
-  }, []);
-
-  const onlineCount = demoCameras.filter(c => c.online).length;
+  const onlineCount = cameras.filter(c => c.online).length;
 
   return (
-    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 lg:gap-4">
-        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
-          <p className="text-[10px] lg:text-xs text-gray-500">Всего</p>
-          <p className="text-lg lg:text-2xl font-semibold text-white mt-1">{demoCameras.length}</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Камеры</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {onlineCount} из {cameras.length} камер в сети
+          </p>
         </div>
-        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
-          <p className="text-[10px] lg:text-xs text-emerald-400">Онлайн</p>
-          <p className="text-lg lg:text-2xl font-semibold text-emerald-400 mt-1">{onlineCount}</p>
-        </div>
-        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
-          <p className="text-[10px] lg:text-xs text-cyan-400">Запись</p>
-          <p className="text-lg lg:text-2xl font-semibold text-cyan-400 mt-1">{demoCameras.filter(c => c.recording).length}</p>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-[#161b22] rounded-lg border border-gray-800 p-0.5">
+            <button
+              onClick={() => setMode('webrtc')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${mode === 'webrtc' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              WebRTC
+            </button>
+            <button
+              onClick={() => setMode('hls')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${mode === 'hls' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              HLS
+            </button>
+          </div>
+          <div className="flex items-center bg-[#161b22] rounded-lg border border-gray-800 p-0.5">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === 'grid' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Сетка
+            </button>
+            <button
+              onClick={() => setViewMode('single')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === 'single' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Одна
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-base lg:text-lg font-semibold text-white">Все камеры</h2>
-        <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-1.5 lg:p-2 rounded-md ${viewMode === 'grid' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-500'}`}
-          >
-            <Grid3x3 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-1.5 lg:p-2 rounded-md ${viewMode === 'list' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-500'}`}
-          >
-            <List className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-          </button>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+          <p className="text-xs text-gray-500">Всего камер</p>
+          <p className="text-2xl font-bold mt-1">{cameras.length}</p>
+        </div>
+        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+          <p className="text-xs text-gray-500">В сети</p>
+          <p className="text-2xl font-bold mt-1 text-emerald-400">{onlineCount}</p>
+        </div>
+        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+          <p className="text-xs text-gray-500">Запись</p>
+          <p className="text-2xl font-bold mt-1 text-cyan-400">{cameras.filter(c => c.recording).length}</p>
+        </div>
+        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
+          <p className="text-xs text-gray-500">Детекция</p>
+          <p className="text-2xl font-bold mt-1 text-purple-400">{cameras.filter(c => c.detecting).length}</p>
         </div>
       </div>
 
       {/* Camera Grid */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-4">
-          {demoCameras.map(cam => (
-            <button
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {cameras.map(cam => (
+            <div
               key={cam.name}
-              onClick={() => setSelectedCam(cam.name)}
-              className="bg-white/5 rounded-xl overflow-hidden border border-white/5 active:scale-[0.98] hover:border-white/10 transition-all"
+              className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden hover:border-gray-700 transition group"
             >
-              <div className="relative aspect-video bg-black/50">
-                {cam.online && serverConnected ? (
-                  <img
-                    src={getFrameUrl(cam.name)}
-                    alt={cam.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                ) : cam.online ? (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Camera className="w-6 h-6 lg:w-8 lg:h-8 text-gray-700" />
-                    <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-400" />
+              {/* Video placeholder */}
+              <div className="relative aspect-video bg-black">
+                {cam.online ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+                    <div className="text-center">
+                      <div className="relative">
+                        <div className="w-16 h-16 rounded-full border-2 border-emerald-500/30 flex items-center justify-center mx-auto mb-2">
+                          <Camera className="w-7 h-7 text-emerald-500/60" />
+                        </div>
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 animate-pulse" />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Поток активен</p>
+                    </div>
+                    {/* Scan line effect */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="absolute w-full h-px bg-emerald-500/20 animate-scan" />
+                    </div>
                   </div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <WifiOff className="w-5 h-5 lg:w-6 lg:h-6 text-red-500/30" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                    <div className="text-center">
+                      <WifiOff className="w-10 h-10 text-red-500/50 mx-auto mb-2" />
+                      <p className="text-xs text-gray-600">Нет сигнала</p>
+                    </div>
                   </div>
                 )}
-                <div className="absolute top-1.5 left-1.5">
-                  <span className={`px-1.5 py-0.5 rounded text-[8px] lg:text-[10px] font-bold ${
-                    cam.online ? 'bg-emerald-500/80 text-white' : 'bg-red-500/80 text-white'
-                  }`}>
-                    {cam.online ? 'LIVE' : 'OFF'}
-                  </span>
+                {/* Overlay controls */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <button className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white">
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                {cam.recording && cam.online && (
-                  <div className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5">
-                    <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-red-500" />
-                    <span className="text-[7px] lg:text-[9px] text-white/70 font-medium">REC</span>
+                {/* Status badge */}
+                <div className="absolute top-2 left-2">
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${cam.online ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                    {cam.online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                    {cam.online ? 'LIVE' : 'OFF'}
                   </div>
-                )}
+                </div>
               </div>
-              <div className="p-2 lg:p-3">
-                <h3 className="text-[11px] lg:text-sm font-semibold text-white truncate">{cam.name}</h3>
-                <p className="text-[9px] lg:text-xs text-gray-500 mt-0.5">{cam.type}</p>
+              {/* Info */}
+              <div className="p-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-sm">{cam.name}</h3>
+                  <div className="flex gap-1">
+                    {cam.recording && <span className="px-1.5 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">REC</span>}
+                    {cam.detecting && <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20">AI</span>}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{cam.type}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-gray-600">Движение: {cam.lastMotion}</span>
+                  <button
+                    onClick={() => { setSelectedCam(cam.name); setViewMode('single'); }}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                  >
+                    <Eye className="w-3 h-3" /> Смотреть
+                  </button>
+                </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       ) : (
-        <div className="space-y-2 lg:space-y-3">
-          {demoCameras.map(cam => (
-            <button
-              key={cam.name}
-              onClick={() => setSelectedCam(cam.name)}
-              className="w-full bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5 active:scale-[0.99] hover:border-white/10 transition-all flex items-center gap-3"
-            >
-              <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-lg flex items-center justify-center ${
-                cam.online ? 'bg-emerald-500/10' : 'bg-white/5'
-              }`}>
-                {cam.online ? (
-                  <Camera className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-400" />
-                ) : (
-                  <WifiOff className="w-4 h-4 lg:w-5 lg:h-5 text-gray-600" />
-                )}
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="text-xs lg:text-sm font-semibold text-white">{cam.name}</h3>
-                <p className="text-[10px] lg:text-xs text-gray-500 mt-0.5">{cam.type} • {cam.lastMotion}</p>
-              </div>
-              {cam.online && <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-400" />}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Modal */}
-      {selectedCam && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end lg:items-center justify-center" onClick={() => setSelectedCam(null)}>
-          <div className="bg-[#1a1a1f] w-full lg:max-w-2xl lg:rounded-2xl rounded-t-2xl max-h-[85vh] overflow-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-3 lg:p-4 border-b border-white/5 flex items-center justify-between">
-              <h3 className="text-sm lg:text-base font-semibold">{selectedCam}</h3>
-              <button onClick={() => setSelectedCam(null)} className="p-1.5 lg:p-2 rounded-lg bg-white/5">
-                <span className="text-gray-400 text-sm">✕</span>
+        /* Single view */
+        <div className="space-y-4">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {cameras.map(cam => (
+              <button
+                key={cam.name}
+                onClick={() => setSelectedCam(cam.name)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                  selectedCam === cam.name
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-[#161b22] text-gray-400 border border-gray-800 hover:border-gray-700'
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${cam.online ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                {cam.name}
               </button>
-            </div>
-            <div className="aspect-video bg-black">
-              {serverConnected ? (
-                <iframe
-                  src={getProxiedStreamUrl(selectedCam, 'hls')}
-                  className="w-full h-full border-0"
-                  title={selectedCam}
-                  allow="autoplay; fullscreen"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Camera className="w-10 h-10 lg:w-12 lg:h-12 text-gray-700" />
+            ))}
+          </div>
+          <div className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden">
+            <div className="aspect-video bg-black flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-24 h-24 rounded-full border-2 border-emerald-500/30 flex items-center justify-center mx-auto mb-3">
+                  <Camera className="w-10 h-10 text-emerald-500/60" />
                 </div>
-              )}
-            </div>
-            <div className="p-3 lg:p-4 flex gap-2">
-              {serverConnected && (
-                <>
-                  <a
-                    href={getFrameUrl(selectedCam)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 lg:py-3 rounded-xl bg-indigo-500 text-white text-xs lg:text-sm font-medium active:opacity-80"
-                  >
-                    <Eye className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> Кадр
-                  </a>
-                  <a
-                    href={`${API_BASE}/zones/${selectedCam}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 lg:py-3 rounded-xl bg-white/5 text-white text-xs lg:text-sm font-medium active:bg-white/10 border border-white/10"
-                  >
-                    <Maximize2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> Зоны
-                  </a>
-                </>
-              )}
+                <p className="text-sm text-gray-400">{selectedCam || 'Выберите камеру'}</p>
+                <p className="text-xs text-gray-600 mt-1">Режим: {mode.toUpperCase()}</p>
+              </div>
             </div>
           </div>
         </div>

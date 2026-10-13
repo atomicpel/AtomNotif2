@@ -1,49 +1,38 @@
 @import "tailwindcss";
 
-/* Safe area support */
-.safe-top {
-  padding-top: env(safe-area-inset-top);
+@keyframes scan {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Hide scrollbar */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-/* Touch optimizations */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-button, a {
-  touch-action: manipulation;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
+.animate-scan {
+  animation: scan 3s linear infinite;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
 }
 
 /* Date input styling */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  opacity: 0.5;
+  filter: invert(0.5);
 }
 
 /* Select styling */
@@ -52,8 +41,8 @@ select {
   background-image: url("image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
-  background-size: 1em 1em;
-  padding-right: 2rem;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
 }
 
 /* Checkbox styling */
@@ -61,18 +50,17 @@ input[type="checkbox"] {
   appearance: none;
   width: 1rem;
   height: 1rem;
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border: 1.5px solid #374151;
   border-radius: 0.25rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: #0d1117;
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  transition: all 0.2s;
 }
 
 input[type="checkbox"]:checked {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: #10b981;
+  border-color: #10b981;
 }
 
 input[type="checkbox"]:checked::after {
@@ -80,49 +68,9 @@ input[type="checkbox"]:checked::after {
   position: absolute;
   left: 3px;
   top: 1px;
-  width: 4px;
-  height: 7px;
+  width: 5px;
+  height: 8px;
   border: solid white;
-  border-width: 0 1.5px 1.5px 0;
+  border-width: 0 2px 2px 0;
   transform: rotate(45deg);
-}
-
-/* Mobile optimizations */
-@media (max-width: 640px) {
-  /* Prevent zoom on input focus */
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-  
-  /* Larger touch targets */
-  button {
-    min-height: 44px;
-  }
-}
-
-/* PWA standalone mode */
-@media (display-mode: standalone) {
-  .safe-top {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Dark mode optimization */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-  }
-}
-
-/* Reduce motion for accessibility */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 }
