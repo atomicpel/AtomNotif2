@@ -1,11 +1,11 @@
 {
-  "name": "Видеонаблюдение — СберДом",
-  "short_name": "СберДом",
+  "name": "Видеонаблюдение — Умный Дом",
+  "short_name": "Камеры",
   "description": "Система видеонаблюдения для умного дома",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#21A038",
+  "background_color": "#0a0a0f",
+  "theme_color": "#6366f1",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -23,20 +23,5 @@
   ],
   "categories": ["security", "utilities"],
   "lang": "ru",
-  "dir": "ltr",
-  "screenshots": [],
-  "shortcuts": [
-    {
-      "name": "Камеры",
-      "short_name": "Камеры",
-      "url": "/",
-      "icons": [{ "src": "/icons/icon.svg", "sizes": "96x96" }]
-    },
-    {
-      "name": "События",
-      "short_name": "События",
-      "url": "/events",
-      "icons": [{ "src": "/icons/icon.svg", "sizes": "96x96" }]
-    }
-  ]
+  "dir": "ltr"
 }
