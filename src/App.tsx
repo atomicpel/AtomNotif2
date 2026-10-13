@@ -21,17 +21,17 @@ function ServerStatus() {
 
   if (connected) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 backdrop-blur-xl">
-        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-500/50" />
-        <span className="text-xs text-emerald-300 font-medium hidden sm:inline">Онлайн</span>
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="text-[11px] text-emerald-400 font-medium">Онлайн</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 backdrop-blur-xl">
-      <WifiOff className="w-3.5 h-3.5 text-orange-400" />
-      <span className="text-xs text-orange-300 font-medium hidden sm:inline">Оффлайн</span>
+    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
+      <WifiOff className="w-3 h-3 text-orange-400" />
+      <span className="text-[11px] text-orange-400 font-medium">Оффлайн</span>
     </div>
   );
 }
@@ -52,22 +52,22 @@ function Header() {
   const canGoBack = location.pathname !== '/';
 
   return (
-    <header className="sticky top-0 z-50 bg-gradient-to-b from-[#0a0a0f] via-[#0a0a0f]/95 to-transparent backdrop-blur-2xl safe-top">
-      <div className="flex items-center justify-between px-5 h-16">
-        <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/5 safe-top">
+      <div className="flex items-center justify-between px-4 h-14">
+        <div className="flex items-center gap-3">
           {canGoBack && (
             <button
               onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 active:bg-white/10 transition-all"
+              className="p-2 -ml-2 rounded-xl bg-white/5 active:bg-white/10"
             >
               <ChevronLeft className="w-5 h-5 text-white" />
             </button>
           )}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-              <Shield className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">{title}</h1>
+            <h1 className="text-base font-semibold text-white">{title}</h1>
           </div>
         </div>
         <ServerStatus />
@@ -86,28 +86,24 @@ function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/95 to-transparent backdrop-blur-2xl safe-bottom">
-      <div className="flex items-center justify-around px-2 h-20 max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-xl border-t border-white/5 safe-bottom">
+      <div className="flex items-center justify-around px-2 h-16 max-w-lg mx-auto">
         {navItems.map(({ path, icon: Icon, label }) => (
           <NavLink
             key={path}
             to={path}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1.5 px-4 py-2 rounded-2xl transition-all min-w-[64px] ${
+              `flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-xl transition-all min-w-[56px] ${
                 isActive
-                  ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 shadow-lg shadow-indigo-500/20'
-                  : 'active:bg-white/5'
+                  ? 'bg-indigo-500/10 text-indigo-400'
+                  : 'text-gray-500 active:text-gray-300'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/50' : ''}`}>
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} strokeWidth={isActive ? 2.5 : 1.5} />
-                </div>
-                <span className={`text-[10px] font-semibold ${isActive ? 'bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent' : 'text-gray-500'}`}>
-                  {label}
-                </span>
+                <Icon className="w-5 h-5" strokeWidth={isActive ? 2 : 1.5} />
+                <span className="text-[10px] font-medium">{label}</span>
               </>
             )}
           </NavLink>
@@ -121,7 +117,7 @@ function Layout() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
       <Header />
-      <main className="flex-1 pb-24">
+      <main className="flex-1 pb-20">
         <Routes>
           <Route path="/" element={<CamerasPage />} />
           <Route path="/events" element={<EventsPage />} />

@@ -23,51 +23,52 @@ export default function SettingsPage() {
       title: 'Система',
       items: [
         { icon: Shield, label: 'Порт сайта', value: '8080', href: getSettingsPageUrl() },
-        { icon: Camera, label: 'Управление камерами', value: '6 камер', href: getSettingsPageUrl() },
+        { icon: Camera, label: 'Камеры', value: '6', href: getSettingsPageUrl() },
       ]
     },
     {
       title: 'Уведомления',
       items: [
-        { icon: Bell, label: 'Telegram', value: serverConnected ? 'Настроено' : 'Не настроено', href: getSettingsPageUrl() },
-        { icon: Bell, label: 'ВКонтакте', value: serverConnected ? 'Настроено' : 'Не настроено', href: getSettingsPageUrl() },
-        { icon: Bell, label: 'Алиса (Яндекс)', value: serverConnected ? 'Настроено' : 'Не настроено', href: getSettingsPageUrl() },
+        { icon: Bell, label: 'Telegram', value: serverConnected ? '✓' : '—', href: getSettingsPageUrl() },
+        { icon: Bell, label: 'ВКонтакте', value: serverConnected ? '✓' : '—', href: getSettingsPageUrl() },
+        { icon: Bell, label: 'Алиса', value: serverConnected ? '✓' : '—', href: getSettingsPageUrl() },
       ]
     },
     {
       title: 'Запись',
       items: [
         { icon: Film, label: 'Видео событий', value: 'Вкл', href: getSettingsPageUrl() },
-        { icon: HardDrive, label: 'Хранилище', value: '142 / 300 ГБ', href: getSettingsPageUrl() },
+        { icon: HardDrive, label: 'Хранилище', value: '142 ГБ', href: getSettingsPageUrl() },
       ]
     },
     {
       title: 'Сеть',
       items: [
-        { icon: Wifi, label: 'SSH-туннель', value: 'Настроен', href: getSettingsPageUrl() },
-        { icon: Wifi, label: 'Tailscale VPN', value: 'Не настроен', href: getSettingsPageUrl() },
+        { icon: Wifi, label: 'SSH-туннель', value: '✓', href: getSettingsPageUrl() },
+        { icon: Wifi, label: 'Tailscale', value: '—', href: getSettingsPageUrl() },
       ]
     },
   ];
 
   return (
-    <div className="space-y-6 p-5">
-      {/* Server status card */}
-      <div className={`relative overflow-hidden rounded-3xl p-6 shadow-2xl ${
+    <div className="p-4 space-y-4">
+      {/* Server status */}
+      <div className={`rounded-xl p-3 border ${
         serverConnected 
-          ? 'bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 shadow-emerald-500/30' 
-          : 'bg-gradient-to-br from-orange-600 via-red-600 to-pink-600 shadow-orange-500/30'
+          ? 'bg-emerald-500/10 border-emerald-500/20' 
+          : 'bg-orange-500/10 border-orange-500/20'
       }`}>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMC41Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-10"></div>
-        <div className="relative z-10 flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-bold text-white">
+            <p className={`text-xs font-semibold ${serverConnected ? 'text-emerald-400' : 'text-orange-400'}`}>
               {serverConnected ? 'Сервер подключён' : 'Сервер недоступен'}
             </p>
-            <p className="text-sm text-white/70 mt-1">{API_BASE}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">{API_BASE}</p>
           </div>
-          <div className="w-14 h-14 rounded-3xl bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30">
-            <div className={`w-4 h-4 rounded-full ${serverConnected ? 'bg-emerald-300 animate-pulse shadow-lg shadow-emerald-300/50' : 'bg-orange-300 shadow-lg shadow-orange-300/50'}`} />
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            serverConnected ? 'bg-emerald-500/20' : 'bg-orange-500/20'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${serverConnected ? 'bg-emerald-400 animate-pulse' : 'bg-orange-400'}`} />
           </div>
         </div>
       </div>
@@ -75,8 +76,8 @@ export default function SettingsPage() {
       {/* Settings sections */}
       {sections.map(section => (
         <div key={section.title}>
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 px-1 font-semibold">{section.title}</p>
-          <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden">
+          <p className="text-[10px] text-gray-500 mb-2 px-1 font-medium">{section.title}</p>
+          <div className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
             {section.items.map((item, idx) => {
               const Icon = item.icon;
               return (
@@ -85,18 +86,18 @@ export default function SettingsPage() {
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-4 p-4 active:bg-white/5 transition-all ${
+                  className={`flex items-center gap-3 p-3 active:bg-white/5 transition ${
                     idx !== section.items.length - 1 ? 'border-b border-white/5' : ''
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-indigo-500/30">
-                    <Icon className="w-5 h-5 text-indigo-400" />
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                    <Icon className="w-4 h-4 text-indigo-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-white">{item.label}</p>
+                    <p className="text-xs font-medium text-white">{item.label}</p>
                   </div>
-                  <span className="text-xs text-gray-500 font-semibold">{item.value}</span>
-                  <ChevronRight className="w-5 h-5 text-gray-600" />
+                  <span className="text-[10px] text-gray-500 font-medium">{item.value}</span>
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
                 </a>
               );
             })}
@@ -109,37 +110,29 @@ export default function SettingsPage() {
         <button
           onClick={handleTestNotify}
           disabled={testing}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-3xl bg-gradient-to-br from-white/5 to-white/[0.02] text-white text-sm font-bold active:bg-white/10 border border-white/10 backdrop-blur-xl disabled:opacity-50 transition-all"
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 text-white text-xs font-medium active:bg-white/10 border border-white/5 disabled:opacity-50"
         >
-          <TestTube className="w-5 h-5" />
+          <TestTube className="w-3.5 h-3.5" />
           {testing ? 'Отправка...' : 'Тестовое уведомление'}
         </button>
       )}
 
       {/* App info */}
-      <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-3xl p-6 border border-white/10 text-center">
-        <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center mb-3 shadow-lg shadow-purple-500/30">
-          <Shield className="w-8 h-8 text-white" />
+      <div className="bg-white/5 rounded-xl p-4 border border-white/5 text-center">
+        <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-2">
+          <Shield className="w-6 h-6 text-white" />
         </div>
-        <p className="text-lg font-bold text-white">Видеонаблюдение</p>
-        <p className="text-xs text-gray-500 mt-1">Версия 1.0.0 • PWA</p>
-        <p className="text-xs text-gray-600 mt-3">
-          Установите на главный экран для быстрого доступа
-        </p>
+        <p className="text-xs font-semibold text-white">Видеонаблюдение</p>
+        <p className="text-[10px] text-gray-500 mt-0.5">Версия 1.0.0 • PWA</p>
       </div>
 
       {/* Install hint */}
-      <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur-xl rounded-3xl p-5 border border-indigo-500/20">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 border border-indigo-500/30">
-            <Info className="w-5 h-5 text-indigo-400" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-300 leading-relaxed">
-              💡 <strong className="text-white">Установка:</strong> Откройте меню браузера → «Добавить на главный экран». 
-              Приложение будет работать как нативное.
-            </p>
-          </div>
+      <div className="bg-indigo-500/10 rounded-xl p-3 border border-indigo-500/20">
+        <div className="flex items-start gap-2">
+          <Info className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[10px] text-gray-300 leading-relaxed">
+            <strong className="text-white">Установка:</strong> Меню браузера → «Добавить на главный экран»
+          </p>
         </div>
       </div>
     </div>
