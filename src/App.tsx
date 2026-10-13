@@ -22,7 +22,7 @@ function Layout() {
   return (
     <div className="min-h-screen bg-[#0d1117] text-gray-100 flex">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#161b22] border-r border-gray-800 transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 z-50 w-64 bg-[#161b22] border-r border-gray-800 transition-all duration-200 ${sidebarOpen ? 'left-0' : '-left-full lg:left-0'}`}>
         <div className="p-5 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
