@@ -51,24 +51,24 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Server status */}
-      <div className={`rounded-xl p-3 border ${
+      <div className={`rounded-xl p-3 lg:p-4 border ${
         serverConnected 
           ? 'bg-emerald-500/10 border-emerald-500/20' 
           : 'bg-orange-500/10 border-orange-500/20'
       }`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className={`text-xs font-semibold ${serverConnected ? 'text-emerald-400' : 'text-orange-400'}`}>
+            <p className={`text-xs lg:text-sm font-semibold ${serverConnected ? 'text-emerald-400' : 'text-orange-400'}`}>
               {serverConnected ? 'Сервер подключён' : 'Сервер недоступен'}
             </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">{API_BASE}</p>
+            <p className="text-[10px] lg:text-xs text-gray-500 mt-0.5">{API_BASE}</p>
           </div>
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+          <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg flex items-center justify-center ${
             serverConnected ? 'bg-emerald-500/20' : 'bg-orange-500/20'
           }`}>
-            <div className={`w-2 h-2 rounded-full ${serverConnected ? 'bg-emerald-400 animate-pulse' : 'bg-orange-400'}`} />
+            <div className={`w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full ${serverConnected ? 'bg-emerald-400 animate-pulse' : 'bg-orange-400'}`} />
           </div>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function SettingsPage() {
       {/* Settings sections */}
       {sections.map(section => (
         <div key={section.title}>
-          <p className="text-[10px] text-gray-500 mb-2 px-1 font-medium">{section.title}</p>
+          <p className="text-[10px] lg:text-xs text-gray-500 mb-2 px-1 font-medium">{section.title}</p>
           <div className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
             {section.items.map((item, idx) => {
               const Icon = item.icon;
@@ -86,18 +86,18 @@ export default function SettingsPage() {
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-3 p-3 active:bg-white/5 transition ${
+                  className={`flex items-center gap-3 p-3 lg:p-4 active:bg-white/5 hover:bg-white/5 transition ${
                     idx !== section.items.length - 1 ? 'border-b border-white/5' : ''
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                    <Icon className="w-4 h-4 text-indigo-400" />
+                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                    <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-white">{item.label}</p>
+                    <p className="text-xs lg:text-sm font-medium text-white">{item.label}</p>
                   </div>
-                  <span className="text-[10px] text-gray-500 font-medium">{item.value}</span>
-                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                  <span className="text-[10px] lg:text-xs text-gray-500 font-medium">{item.value}</span>
+                  <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5 text-gray-600" />
                 </a>
               );
             })}
@@ -110,27 +110,27 @@ export default function SettingsPage() {
         <button
           onClick={handleTestNotify}
           disabled={testing}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 text-white text-xs font-medium active:bg-white/10 border border-white/5 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 lg:py-3 rounded-xl bg-white/5 text-white text-xs lg:text-sm font-medium active:bg-white/10 border border-white/5 disabled:opacity-50"
         >
-          <TestTube className="w-3.5 h-3.5" />
+          <TestTube className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
           {testing ? 'Отправка...' : 'Тестовое уведомление'}
         </button>
       )}
 
       {/* App info */}
-      <div className="bg-white/5 rounded-xl p-4 border border-white/5 text-center">
-        <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-2">
-          <Shield className="w-6 h-6 text-white" />
+      <div className="bg-white/5 rounded-xl p-4 lg:p-5 border border-white/5 text-center">
+        <div className="w-12 h-12 lg:w-14 lg:h-14 mx-auto rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-2">
+          <Shield className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
         </div>
-        <p className="text-xs font-semibold text-white">Видеонаблюдение</p>
-        <p className="text-[10px] text-gray-500 mt-0.5">Версия 1.0.0 • PWA</p>
+        <p className="text-xs lg:text-sm font-semibold text-white">Видеонаблюдение</p>
+        <p className="text-[10px] lg:text-xs text-gray-500 mt-0.5">Версия 1.0.0 • PWA</p>
       </div>
 
       {/* Install hint */}
-      <div className="bg-indigo-500/10 rounded-xl p-3 border border-indigo-500/20">
+      <div className="bg-indigo-500/10 rounded-xl p-3 lg:p-4 border border-indigo-500/20">
         <div className="flex items-start gap-2">
-          <Info className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[10px] text-gray-300 leading-relaxed">
+          <Info className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[10px] lg:text-xs text-gray-300 leading-relaxed">
             <strong className="text-white">Установка:</strong> Меню браузера → «Добавить на главный экран»
           </p>
         </div>

@@ -52,30 +52,30 @@ export default function EventsPage() {
   ];
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Compact stats */}
-      <div className="flex gap-2">
-        <div className="flex-1 bg-white/5 rounded-xl px-3 py-2.5 border border-white/5">
-          <p className="text-[10px] text-gray-500">Сегодня</p>
-          <p className="text-sm font-semibold text-white">{demoEvents.length}</p>
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 lg:gap-4">
+        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
+          <p className="text-[10px] lg:text-xs text-gray-500">Сегодня</p>
+          <p className="text-lg lg:text-2xl font-semibold text-white mt-1">{demoEvents.length}</p>
         </div>
-        <div className="flex-1 bg-white/5 rounded-xl px-3 py-2.5 border border-white/5">
-          <p className="text-[10px] text-amber-400">Люди</p>
-          <p className="text-sm font-semibold text-amber-400">{demoEvents.filter(e => e.labels.includes('человек')).length}</p>
+        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
+          <p className="text-[10px] lg:text-xs text-amber-400">Люди</p>
+          <p className="text-lg lg:text-2xl font-semibold text-amber-400 mt-1">{demoEvents.filter(e => e.labels.includes('человек')).length}</p>
         </div>
-        <div className="flex-1 bg-white/5 rounded-xl px-3 py-2.5 border border-white/5">
-          <p className="text-[10px] text-purple-400">Видео</p>
-          <p className="text-sm font-semibold text-purple-400">{demoEvents.filter(e => e.hasClip).length}</p>
+        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
+          <p className="text-[10px] lg:text-xs text-purple-400">Видео</p>
+          <p className="text-lg lg:text-2xl font-semibold text-purple-400 mt-1">{demoEvents.filter(e => e.hasClip).length}</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+      <div className="flex gap-1.5 lg:gap-2 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
         {filters.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${
+            className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[11px] lg:text-sm font-medium whitespace-nowrap transition ${
               filter === key
                 ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
                 : 'bg-white/5 text-gray-400 border border-white/5'
@@ -92,44 +92,44 @@ export default function EventsPage() {
           href={getEventsPageUrl()}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5 border border-white/5 active:bg-white/10"
+          className="flex items-center justify-between bg-white/5 rounded-xl px-3 lg:px-4 py-2.5 lg:py-3 border border-white/5 active:bg-white/10 hover:border-white/10 transition"
         >
-          <span className="text-[11px] text-gray-400">Открыть на сервере</span>
-          <span className="text-indigo-400 text-xs">→</span>
+          <span className="text-[11px] lg:text-sm text-gray-400">Открыть на сервере</span>
+          <span className="text-indigo-400 text-sm lg:text-base">→</span>
         </a>
       )}
 
       {/* Events list */}
-      <div className="space-y-2">
+      <div className="space-y-2 lg:space-y-3">
         {filtered.map(ev => (
           <button
             key={ev.id}
             onClick={() => setSelectedEvent(ev)}
-            className="w-full bg-white/5 rounded-xl p-3 border border-white/5 active:scale-[0.99] transition-transform"
+            className="w-full bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5 active:scale-[0.99] hover:border-white/10 transition-all"
           >
             <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-lg bg-black/30 flex items-center justify-center flex-shrink-0 relative">
-                <Camera className="w-4 h-4 text-gray-700" />
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-lg bg-black/30 flex items-center justify-center flex-shrink-0 relative">
+                <Camera className="w-4 h-4 lg:w-5 lg:h-5 text-gray-700" />
                 {ev.hasClip && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center">
-                    <Play className="w-2 h-2 text-white fill-white" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 lg:w-5 lg:h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                    <Play className="w-2 h-2 lg:w-2.5 lg:h-2.5 text-white fill-white" />
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold text-white">{ev.cam}</h3>
-                  <span className="text-[10px] text-gray-500 flex items-center gap-0.5">
-                    <Clock className="w-2.5 h-2.5" />
+                  <h3 className="text-xs lg:text-sm font-semibold text-white">{ev.cam}</h3>
+                  <span className="text-[10px] lg:text-xs text-gray-500 flex items-center gap-0.5">
+                    <Clock className="w-2.5 h-2.5 lg:w-3 lg:h-3" />
                     {ev.time}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1 mt-1.5">
+                <div className="flex flex-wrap gap-1 lg:gap-1.5 mt-1.5">
                   {ev.labels.map(label => {
                     const Icon = labelIcons[label] || User;
                     return (
-                      <span key={label} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border ${labelColors[label]}`}>
-                        <Icon className="w-2 h-2" />
+                      <span key={label} className={`inline-flex items-center gap-0.5 lg:gap-1 px-1.5 lg:px-2 py-0.5 lg:py-1 rounded text-[9px] lg:text-[10px] border ${labelColors[label]}`}>
+                        <Icon className="w-2 h-2 lg:w-2.5 lg:h-2.5" />
                         {label}
                       </span>
                     );
@@ -143,35 +143,35 @@ export default function EventsPage() {
 
       {/* Modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end" onClick={() => setSelectedEvent(null)}>
-          <div className="bg-[#1a1a1f] w-full rounded-t-2xl" onClick={e => e.stopPropagation()}>
-            <div className="p-3 border-b border-white/5 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end lg:items-center justify-center" onClick={() => setSelectedEvent(null)}>
+          <div className="bg-[#1a1a1f] w-full lg:max-w-2xl lg:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-3 lg:p-4 border-b border-white/5 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold">{selectedEvent.cam}</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5">Сегодня в {selectedEvent.time}</p>
+                <h3 className="text-sm lg:text-base font-semibold">{selectedEvent.cam}</h3>
+                <p className="text-[10px] lg:text-xs text-gray-500 mt-0.5">Сегодня в {selectedEvent.time}</p>
               </div>
-              <button onClick={() => setSelectedEvent(null)} className="p-1.5 rounded-lg bg-white/5">
+              <button onClick={() => setSelectedEvent(null)} className="p-1.5 lg:p-2 rounded-lg bg-white/5">
                 <span className="text-gray-400 text-sm">✕</span>
               </button>
             </div>
             <div className="aspect-video bg-black flex items-center justify-center">
-              <Camera className="w-10 h-10 text-gray-700" />
+              <Camera className="w-10 h-10 lg:w-12 lg:h-12 text-gray-700" />
             </div>
-            <div className="p-3 space-y-3">
-              <div className="flex flex-wrap gap-1.5">
+            <div className="p-3 lg:p-4 space-y-3">
+              <div className="flex flex-wrap gap-1.5 lg:gap-2">
                 {selectedEvent.labels.map(label => {
                   const Icon = labelIcons[label] || User;
                   return (
-                    <span key={label} className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] border ${labelColors[label]}`}>
-                      <Icon className="w-2.5 h-2.5" />
+                    <span key={label} className={`inline-flex items-center gap-1 px-2 lg:px-3 py-1 lg:py-1.5 rounded-lg text-[10px] lg:text-xs border ${labelColors[label]}`}>
+                      <Icon className="w-2.5 h-2.5 lg:w-3 lg:h-3" />
                       {label}
                     </span>
                   );
                 })}
               </div>
               {selectedEvent.hasClip && serverConnected && (
-                <button className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-indigo-500 text-white text-xs font-medium active:opacity-80">
-                  <Play className="w-3.5 h-3.5" /> Смотреть видео
+                <button className="w-full flex items-center justify-center gap-1.5 py-2.5 lg:py-3 rounded-xl bg-indigo-500 text-white text-xs lg:text-sm font-medium active:opacity-80">
+                  <Play className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> Смотреть видео
                 </button>
               )}
             </div>

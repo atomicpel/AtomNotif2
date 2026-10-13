@@ -42,61 +42,61 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Profile card */}
-      <div className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl p-4 border border-indigo-500/20">
+      <div className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl p-4 lg:p-5 border border-indigo-500/20">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-            <UserIcon className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-xl bg-white/10 flex items-center justify-center">
+            <UserIcon className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">admin</h2>
-            <p className="text-[11px] text-white/60">Администратор</p>
+            <h2 className="text-sm lg:text-base font-semibold text-white">admin</h2>
+            <p className="text-[11px] lg:text-xs text-white/60">Администратор</p>
           </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="flex gap-2">
-        <div className="flex-1 bg-white/5 rounded-xl px-3 py-2.5 border border-white/5">
-          <p className="text-[10px] text-gray-500">Пользователи</p>
-          <p className="text-sm font-semibold text-white">{users.length}</p>
+      <div className="grid grid-cols-2 gap-2 lg:gap-4">
+        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
+          <p className="text-[10px] lg:text-xs text-gray-500">Пользователи</p>
+          <p className="text-lg lg:text-2xl font-semibold text-white mt-1">{users.length}</p>
         </div>
-        <div className="flex-1 bg-white/5 rounded-xl px-3 py-2.5 border border-white/5">
-          <p className="text-[10px] text-emerald-400">Онлайн</p>
-          <p className="text-sm font-semibold text-emerald-400">{users.filter(u => u.status === 'online').length}</p>
+        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
+          <p className="text-[10px] lg:text-xs text-emerald-400">Онлайн</p>
+          <p className="text-lg lg:text-2xl font-semibold text-emerald-400 mt-1">{users.filter(u => u.status === 'online').length}</p>
         </div>
       </div>
 
       {/* Add button */}
       <button
         onClick={() => setShowAdd(!showAdd)}
-        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-indigo-500 text-white text-xs font-medium active:opacity-80"
+        className="w-full flex items-center justify-center gap-1.5 py-2.5 lg:py-3 rounded-xl bg-indigo-500 text-white text-xs lg:text-sm font-medium active:opacity-80"
       >
-        <Plus className="w-3.5 h-3.5" /> Добавить пользователя
+        <Plus className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> Добавить пользователя
       </button>
 
       {/* Add form */}
       {showAdd && (
-        <div className="bg-white/5 rounded-xl p-3 border border-white/5 space-y-2">
+        <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5 space-y-2 lg:space-y-3">
           <input
             type="text"
             value={newName}
             onChange={e => setNewName(e.target.value)}
             placeholder="Логин"
-            className="w-full bg-white/5 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 border border-white/5 focus:border-indigo-500/50 outline-none"
+            className="w-full bg-white/5 rounded-lg px-3 py-2 lg:py-2.5 text-xs lg:text-sm text-white placeholder-gray-500 border border-white/5 focus:border-indigo-500/50 outline-none"
           />
           <input
             type="password"
             value={newPassword}
             onChange={e => setNewPassword(e.target.value)}
             placeholder="Пароль (мин. 6 символов)"
-            className="w-full bg-white/5 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 border border-white/5 focus:border-indigo-500/50 outline-none"
+            className="w-full bg-white/5 rounded-lg px-3 py-2 lg:py-2.5 text-xs lg:text-sm text-white placeholder-gray-500 border border-white/5 focus:border-indigo-500/50 outline-none"
           />
           <select
             value={newRole}
             onChange={e => setNewRole(e.target.value as 'viewer' | 'admin')}
-            className="w-full bg-white/5 rounded-lg px-3 py-2 text-xs text-white border border-white/5 focus:border-indigo-500/50 outline-none"
+            className="w-full bg-white/5 rounded-lg px-3 py-2 lg:py-2.5 text-xs lg:text-sm text-white border border-white/5 focus:border-indigo-500/50 outline-none"
           >
             <option value="viewer">Только просмотр</option>
             <option value="admin">Администратор</option>
@@ -104,13 +104,13 @@ export default function UsersPage() {
           <div className="flex gap-2">
             <button
               onClick={addUser}
-              className="flex-1 py-2 rounded-lg bg-indigo-500 text-white text-xs font-medium active:opacity-80"
+              className="flex-1 py-2 lg:py-2.5 rounded-lg bg-indigo-500 text-white text-xs lg:text-sm font-medium active:opacity-80"
             >
               Создать
             </button>
             <button
               onClick={() => setShowAdd(false)}
-              className="flex-1 py-2 rounded-lg bg-white/5 text-gray-400 text-xs font-medium active:bg-white/10 border border-white/5"
+              className="flex-1 py-2 lg:py-2.5 rounded-lg bg-white/5 text-gray-400 text-xs lg:text-sm font-medium active:bg-white/10 border border-white/5"
             >
               Отмена
             </button>
@@ -119,26 +119,26 @@ export default function UsersPage() {
       )}
 
       {/* Users list */}
-      <div className="space-y-2">
+      <div className="space-y-2 lg:space-y-3">
         {users.map(user => (
-          <div key={user.name} className="bg-white/5 rounded-xl p-3 border border-white/5 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          <div key={user.name} className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5 flex items-center gap-3">
+            <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-lg flex items-center justify-center ${
               user.role === 'admin' ? 'bg-amber-500/10' : 'bg-white/5'
             }`}>
               {user.role === 'admin' ? (
-                <Shield className="w-4 h-4 text-amber-400" />
+                <Shield className="w-4 h-4 lg:w-5 lg:h-5 text-amber-400" />
               ) : (
-                <Eye className="w-4 h-4 text-gray-500" />
+                <Eye className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500" />
               )}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
-                <h3 className="text-xs font-semibold text-white">{user.name}</h3>
+                <h3 className="text-xs lg:text-sm font-semibold text-white">{user.name}</h3>
                 {user.status === 'online' && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-400" />
                 )}
               </div>
-              <p className="text-[10px] text-gray-500 mt-0.5">
+              <p className="text-[10px] lg:text-xs text-gray-500 mt-0.5">
                 {user.role === 'admin' ? 'Администратор' : 'Только просмотр'}
               </p>
             </div>
@@ -147,7 +147,7 @@ export default function UsersPage() {
                 onClick={() => deleteUser(user.name)}
                 className="p-2 rounded-lg bg-white/5 active:bg-red-500/20 text-gray-500 active:text-red-400"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
               </button>
             )}
           </div>
@@ -155,8 +155,8 @@ export default function UsersPage() {
       </div>
 
       {/* Info */}
-      <div className="bg-white/5 rounded-xl p-3 border border-white/5">
-        <p className="text-[10px] text-gray-400 leading-relaxed">
+      <div className="bg-white/5 rounded-xl p-3 lg:p-4 border border-white/5">
+        <p className="text-[10px] lg:text-xs text-gray-400 leading-relaxed">
           <strong className="text-amber-400">Администратор</strong> — полный доступ.
           <br />
           <strong className="text-gray-300">Просмотр</strong> — только камеры, события и архив.
