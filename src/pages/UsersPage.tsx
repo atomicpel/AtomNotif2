@@ -1,185 +1,120 @@
-import { useState } from 'react';
-import { Users, Shield, Eye, Plus, Trash2, Key } from 'lucide-react';
-
-interface UserData {
-  name: string;
-  role: 'admin' | 'viewer';
-  lastActive: string;
-  status: 'online' | 'offline';
-}
-
-const initialUsers: UserData[] = [
-  { name: 'admin', role: 'admin', lastActive: 'Сейчас', status: 'online' },
-  { name: 'wife', role: 'viewer', lastActive: '5 мин назад', status: 'online' },
-  { name: 'son', role: 'viewer', lastActive: '2 часа назад', status: 'offline' },
-  { name: 'neighbor', role: 'viewer', lastActive: '1 день назад', status: 'offline' },
-];
+import { useState, useEffect, useCallback } from 'react';
+import { Users, Plus, Trash2, RefreshCw, Shield, Eye, WifiOff } from 'lucide-react';
+import { getConfig, addUser, deleteUser } from '../api';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserData[]>(initialUsers);
+  const [users, setUsers] = useState<Record<string, { role: string }>>({});
+  const [me, setMe] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'viewer' | 'admin'>('viewer');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('viewer');
+  const [msg, setMsg] = useState('');
 
-  const addUser = () => {
-    if (newName.length >= 2 && newPassword.length >= 6) {
-      setUsers([...users, { name: newName, role: newRole, lastActive: 'Только что', status: 'offline' }]);
-      setNewName('');
-      setNewPassword('');
-      setShowAdd(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const c = await getConfig();
+      setUsers(c.users || {});
+      setError('');
+    } catch (e: any) {
+      if (e.message === 'forbidden') setError('Только администратор');
+      else setError(e.message === 'auth' ? 'Требуется вход' : 'Ошибка загрузки');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAdd = async () => {
+    setMsg('');
+    try {
+      const r = await addUser(name, password, role);
+      if (r.ok) {
+        setName(''); setPassword(''); setShowAdd(false);
+        load();
+      } else setMsg('Не удалось: проверьте логин (2–32 символа) и пароль (от 6)');
+    } catch {
+      setMsg('Ошибка');
     }
   };
 
-  const deleteUser = (name: string) => {
-    setUsers(users.filter(u => u.name !== name));
+  const handleDel = async (n: string) => {
+    if (!confirm(`Удалить пользователя ${n}?`)) return;
+    try {
+      const r = await deleteUser(n);
+      if (r && r.ok === false) setMsg('Нельзя удалить последнего администратора');
+      load();
+    } catch (e: any) {
+      setMsg(e.message || 'Ошибка');
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Пользователи</h2>
-          <p className="text-sm text-gray-500 mt-1">Управление доступом к системе</p>
+          <h2 className="text-2xl font-bold tracking-tight">Пользователи</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{Object.keys(users).length} аккаунтов</p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-medium hover:bg-emerald-500/20 transition border border-emerald-500/20"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 text-sm font-medium hover:bg-emerald-500/25"
         >
           <Plus className="w-4 h-4" /> Добавить
         </button>
       </div>
 
-      {/* Add user form */}
-      {showAdd && (
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5">
-          <h3 className="text-sm font-medium mb-4">Новый пользователь</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Логин</label>
-              <input
-                type="text"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                placeholder="Логин (2-32 символа)"
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Пароль</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="Минимум 6 символов"
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Роль</label>
-              <select
-                value={newRole}
-                onChange={e => setNewRole(e.target.value as 'viewer' | 'admin')}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              >
-                <option value="viewer">Только просмотр</option>
-                <option value="admin">Администратор</option>
-              </select>
-            </div>
-            <div className="flex items-end gap-2">
-              <button
-                onClick={addUser}
-                className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition"
-              >
-                Создать
-              </button>
-              <button
-                onClick={() => setShowAdd(false)}
-                className="px-4 py-2 rounded-lg bg-gray-800 text-gray-400 text-sm font-medium hover:bg-gray-700 transition"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
+      {msg && !showAdd && <p className="text-sm text-amber-400">{msg}</p>}
+
+      {error && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-center gap-3">
+          <WifiOff className="w-5 h-5 text-amber-400" />
+          <span className="text-amber-300 text-sm">{error}</span>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Всего пользователей</p>
-          <p className="text-2xl font-bold mt-1">{users.length}</p>
+      {showAdd && (
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 space-y-3">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Логин" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Пароль (от 6 символов)" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50" />
+          <select value={role} onChange={e => setRole(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50">
+            <option value="viewer">Только просмотр</option>
+            <option value="admin">Администратор</option>
+          </select>
+          <div className="flex gap-2">
+            <button onClick={handleAdd} className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-400">Создать</button>
+            <button onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-lg bg-white/5 text-gray-300 text-sm">Отмена</button>
+          </div>
+          {msg && <p className="text-sm text-amber-400">{msg}</p>}
         </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Администраторы</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">{users.filter(u => u.role === 'admin').length}</p>
-        </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Онлайн</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">{users.filter(u => u.status === 'online').length}</p>
-        </div>
-      </div>
+      )}
 
-      {/* Users list */}
-      <div className="space-y-3">
-        {users.map(user => (
-          <div key={user.name} className="bg-[#161b22] rounded-xl border border-gray-800 p-4 hover:border-gray-700 transition">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                  user.role === 'admin' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-gray-800 text-gray-400 border border-gray-700'
-                }`}>
-                  {user.name[0].toUpperCase()}
+      {loading ? (
+        <div className="flex justify-center py-16"><RefreshCw className="w-8 h-8 animate-spin text-emerald-400" /></div>
+      ) : (
+        <div className="grid gap-2">
+          {(Object.entries(users) as Array<[string, { role: string }]>).map(([n, u]) => (
+            <div key={n} className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${u.role === 'admin' ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
+                  {u.role === 'admin' ? <Shield className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4 text-gray-400" />}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-sm">{user.name}</h3>
-                    {user.status === 'online' && (
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-                      user.role === 'admin'
-                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                        : 'bg-gray-800 text-gray-400 border-gray-700'
-                    }`}>
-                      {user.role === 'admin' ? <Shield className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
-                      {user.role === 'admin' ? 'Администратор' : 'Просмотр'}
-                    </span>
-                    <span className="text-xs text-gray-600">•</span>
-                    <span className="text-xs text-gray-500">{user.lastActive}</span>
-                  </div>
+                  <p className="font-medium text-sm">{n}</p>
+                  <p className="text-xs text-gray-500">{u.role === 'admin' ? 'Администратор' : 'Только просмотр'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="p-2 rounded-lg hover:bg-gray-800 text-gray-500 hover:text-gray-300 transition">
-                  <Key className="w-4 h-4" />
-                </button>
-                {user.name !== 'admin' && (
-                  <button
-                    onClick={() => deleteUser(user.name)}
-                    className="p-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              <button onClick={() => handleDel(n)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10">
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Info */}
-      <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-        <p className="text-xs text-gray-500">
-          <strong className="text-gray-400">Администратор</strong> — полный доступ: камеры, события, архив, настройки, управление пользователями.
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          <strong className="text-gray-400">Только просмотр</strong> — доступ к камерам, событиям и архиву без возможности изменения настроек.
-        </p>
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

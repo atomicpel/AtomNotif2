@@ -1,524 +1,324 @@
-import { useState } from 'react';
-import { Settings, Camera, Bell, Film, HardDrive, Shield, Wifi, Save, TestTube, RotateCcw } from 'lucide-react';
-
-interface SettingsData {
-  port: string;
-  segmentMinutes: string;
-  keepDays: string;
-  fastDays: string;
-  maxGb: string;
-  archiveDir: string;
-  motionArea: string;
-  motionCooldown: string;
-  telegramToken: string;
-  telegramChatId: string;
-  yandexToken: string;
-  yandexScenarioId: string;
-  clipPre: string;
-  clipPost: string;
-  clipMax: string;
-  clipSource: string;
-  clipDir: string;
-  bufferDir: string;
-  clipKeepDays: string;
-  publicUrl: string;
-  vkToken: string;
-  vkPeerId: string;
-  tailscaleIp: string;
-  tunnel: string;
-  recordEnabled: boolean;
-  detectEnabled: boolean;
-  clipEnabled: boolean;
-}
-
-const defaultSettings: SettingsData = {
-  port: '8080',
-  segmentMinutes: '10',
-  keepDays: '14',
-  fastDays: '3',
-  maxGb: '300',
-  archiveDir: '',
-  motionArea: '0.01',
-  motionCooldown: '30',
-  telegramToken: '',
-  telegramChatId: '',
-  yandexToken: '',
-  yandexScenarioId: '',
-  clipPre: '10',
-  clipPost: '60',
-  clipMax: '180',
-  clipSource: 'main',
-  clipDir: '',
-  bufferDir: '',
-  clipKeepDays: '30',
-  publicUrl: '',
-  vkToken: '',
-  vkPeerId: '',
-  tailscaleIp: '',
-  tunnel: 'tunnel@185.204.2.41',
-  recordEnabled: true,
-  detectEnabled: true,
-  clipEnabled: true,
-};
+import { useState, useEffect, useCallback } from 'react';
+import { Settings, RefreshCw, Save, Bell, WifiOff, Plus, Trash2, Camera } from 'lucide-react';
+import { getConfig, saveSettings, testNotify, addCamera, deleteCamera, editCamera } from '../api';
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<SettingsData>(defaultSettings);
-  const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState('general');
+  const [cfg, setCfg] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [msg, setMsg] = useState('');
+  const [tab, setTab] = useState<'general' | 'cameras' | 'notify'>('general');
 
-  const update = (key: keyof SettingsData, value: string | boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    setSaved(false);
+  // new camera form
+  const [newName, setNewName] = useState('');
+  const [newUrl, setNewUrl] = useState('');
+  const [newSub, setNewSub] = useState('');
+  const [subEdit, setSubEdit] = useState<Record<string, string>>({});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const c = await getConfig();
+      setCfg(c);
+      setError('');
+    } catch (e: any) {
+      setError(e.message === 'forbidden' ? 'Только администратор' : e.message === 'auth' ? 'Требуется вход' : 'Ошибка');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // обновляет только список камер/пользователей, не трогая несохранённые правки в остальных полях
+  const refreshCams = async () => {
+    try { const c = await getConfig(); setCfg((prev: any) => ({ ...prev, cameras: c.cameras, users: c.users })); } catch { /* ignore */ }
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const set = (k: string, v: any) => setCfg((c: any) => ({ ...c, [k]: v }));
+
+  const handleSave = async () => {
+    setSaving(true); setMsg('');
+    try {
+      await saveSettings(cfg);
+      setMsg('Сохранено');
+      setTimeout(() => setMsg(''), 2500);
+    } catch {
+      setMsg('Ошибка сохранения');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const tabs = [
-    { key: 'general', label: 'Общие', icon: Settings },
-    { key: 'cameras', label: 'Камеры', icon: Camera },
-    { key: 'notifications', label: 'Уведомления', icon: Bell },
-    { key: 'clips', label: 'Видео событий', icon: Film },
-    { key: 'storage', label: 'Хранилище', icon: HardDrive },
-    { key: 'network', label: 'Сеть', icon: Wifi },
-  ];
+  const handleTest = async () => {
+    try { await testNotify(); setMsg('Тест отправлен'); }
+    catch { setMsg('Ошибка теста'); }
+  };
+
+  const handleAddCam = async () => {
+    try {
+      const r = await addCamera(newName, newUrl, newSub);
+      if (r.ok) { setNewName(''); setNewUrl(''); setNewSub(''); refreshCams(); }
+      else setMsg('Не удалось добавить камеру');
+    } catch { setMsg('Ошибка'); }
+  };
+
+  const handleDelCam = async (name: string) => {
+    if (!confirm(`Удалить камеру ${name}?`)) return;
+    await deleteCamera(name);
+    load();
+  };
+
+  const toggleCam = async (name: string, field: 'record' | 'detect', val: boolean) => {
+    await editCamera(name, { [field]: val });
+    refreshCams();
+  };
+
+  if (loading) return <div className="flex justify-center py-20"><RefreshCw className="w-8 h-8 animate-spin text-emerald-400" /></div>;
+  if (error) return (
+    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 text-center">
+      <WifiOff className="w-10 h-10 text-amber-400 mx-auto mb-3" />
+      <p className="text-amber-300">{error}</p>
+    </div>
+  );
+  if (!cfg) return null;
+
+  const inputCls = 'w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50';
+  const labelCls = 'block text-xs text-gray-500 mb-1';
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Настройки</h2>
-          <p className="text-sm text-gray-500 mt-1">Конфигурация системы видеонаблюдения</p>
+          <h2 className="text-2xl font-bold tracking-tight">Настройки</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Сервер и камеры</p>
         </div>
-        <div className="flex items-center gap-3">
-          {saved && (
-            <span className="text-xs text-emerald-400 animate-pulse">✓ Сохранено</span>
-          )}
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition"
-          >
-            <Save className="w-4 h-4" /> Сохранить
-          </button>
-        </div>
+        {msg && <span className="text-sm text-emerald-400">{msg}</span>}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-2">
-        {tabs.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-              activeTab === key
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'bg-[#161b22] text-gray-500 border border-gray-800 hover:border-gray-700 hover:text-gray-300'
-            }`}
-          >
-            <Icon className="w-3.5 h-3.5" />
-            {label}
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-fit">
+        {([
+          ['general', 'Общие'],
+          ['cameras', 'Камеры'],
+          ['notify', 'Уведомления'],
+        ] as const).map(([k, l]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === k ? 'bg-emerald-500/15 text-emerald-300' : 'text-gray-400 hover:text-gray-200'}`}>
+            {l}
           </button>
         ))}
       </div>
 
-      {/* General */}
-      {activeTab === 'general' && (
+      {tab === 'general' && (
         <div className="space-y-4">
-          <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5 space-y-4">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <Shield className="w-4 h-4 text-gray-500" /> Основные параметры
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Порт сайта</label>
-                <input
-                  type="number"
-                  value={settings.port}
-                  onChange={e => update('port', e.target.value)}
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-                <p className="text-[10px] text-gray-600 mt-1">Нужен перезапуск программы</p>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Пауза между событиями, сек</label>
-                <input
-                  type="number"
-                  value={settings.motionCooldown}
-                  onChange={e => update('motionCooldown', e.target.value)}
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Мин. размер объекта (доля кадра)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={settings.motionArea}
-                  onChange={e => update('motionArea', e.target.value)}
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-                <p className="text-[10px] text-gray-600 mt-1">0.01 = 1%, больше = менее чувствительно</p>
-              </div>
-            </div>
-            <div className="space-y-3 pt-2">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.recordEnabled}
-                  onChange={e => update('recordEnabled', e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-700 bg-[#0d1117] text-emerald-500 focus:ring-emerald-500/20"
-                />
-                <div>
-                  <span className="text-sm text-gray-300">Запись включена</span>
-                  <p className="text-[10px] text-gray-600">Непрерывная запись со всех камер</p>
-                </div>
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-4">
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={!!cfg.record_enabled} onChange={e => set('record_enabled', e.target.checked)} className="accent-emerald-500" />
+                Запись
               </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.detectEnabled}
-                  onChange={e => update('detectEnabled', e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-700 bg-[#0d1117] text-emerald-500 focus:ring-emerald-500/20"
-                />
-                <div>
-                  <span className="text-sm text-gray-300">Детекция движения и уведомления</span>
-                  <p className="text-[10px] text-gray-600">Распознавание людей, машин, животных</p>
-                </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={!!cfg.detect_enabled} onChange={e => set('detect_enabled', e.target.checked)} className="accent-emerald-500" />
+                Детекция
               </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.clipEnabled}
-                  onChange={e => update('clipEnabled', e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-700 bg-[#0d1117] text-emerald-500 focus:ring-emerald-500/20"
-                />
-                <div>
-                  <span className="text-sm text-gray-300">Видео событий</span>
-                  <p className="text-[10px] text-gray-600">Запись клипов до и после срабатывания</p>
-                </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={!!cfg.clip_enabled} onChange={e => set('clip_enabled', e.target.checked)} className="accent-emerald-500" />
+                Видео событий
               </label>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cameras */}
-      {activeTab === 'cameras' && (
-        <div className="space-y-4">
-          <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5">
-            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-              <Camera className="w-4 h-4 text-gray-500" /> Добавить камеру
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Имя (латиницей)</label>
-                <input
-                  type="text"
-                  placeholder="например: entrance"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
+                <label className={labelCls}>Длина файла записи, мин</label>
+                <input type="number" value={cfg.segment_minutes ?? 10} onChange={e => set('segment_minutes', +e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">RTSP-ссылка</label>
-                <input
-                  type="text"
-                  placeholder="rtsp://логин:пароль@192.168.1.10:554/stream1"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
+                <label className={labelCls}>Хранить записи, дней</label>
+                <input type="number" value={cfg.keep_days ?? 14} onChange={e => set('keep_days', +e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Дней на основном диске</label>
+                <input type="number" value={cfg.fast_days ?? 3} onChange={e => set('fast_days', +e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Макс. место, ГБ</label>
+                <input type="number" value={cfg.max_gb ?? 300} onChange={e => set('max_gb', +e.target.value)} className={inputCls} />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs text-gray-500 mb-1 block">Подпоток для детекции (необязательно)</label>
-                <input
-                  type="text"
-                  placeholder="rtsp://логин:пароль@192.168.1.10:554/stream2"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-                <p className="text-[10px] text-gray-600 mt-1">Лёгкий поток для детекции и просмотра с телефона</p>
-              </div>
-            </div>
-            <button className="mt-4 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition">
-              Добавить камеру
-            </button>
-          </div>
-          <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5">
-            <h3 className="text-sm font-medium mb-4">Поиск камер в сети (ONVIF)</h3>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 text-sm font-medium hover:bg-cyan-500/20 transition border border-cyan-500/20">
-              <RotateCcw className="w-4 h-4" /> Сканировать сеть
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Notifications */}
-      {activeTab === 'notifications' && (
-        <div className="space-y-4">
-          <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5 space-y-4">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <svg className="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
-              Telegram
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Токен бота</label>
-                <input
-                  type="password"
-                  value={settings.telegramToken}
-                  onChange={e => update('telegramToken', e.target.value)}
-                  placeholder="123456:ABC-DEF..."
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
+                <label className={labelCls}>Папка архива (второй диск)</label>
+                <input value={cfg.archive_dir ?? ''} onChange={e => set('archive_dir', e.target.value)} className={inputCls} placeholder="пусто = не использовать" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Chat ID</label>
-                <input
-                  type="text"
-                  value={settings.telegramChatId}
-                  onChange={e => update('telegramChatId', e.target.value)}
-                  placeholder="-1001234567890"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
+                <label className={labelCls}>Чувствительность движения (0.01 = 1%)</label>
+                <input type="number" step="0.001" value={cfg.motion_area ?? 0.01} onChange={e => set('motion_area', +e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Пауза между событиями, сек</label>
+                <input type="number" value={cfg.motion_cooldown ?? 30} onChange={e => set('motion_cooldown', +e.target.value)} className={inputCls} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelCls}>SSH-туннель (user@server)</label>
+                <input value={cfg.tunnel ?? ''} onChange={e => set('tunnel', e.target.value)} className={inputCls} placeholder="tunnel@185.204.2.41" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Публичный URL (для ссылок в уведомлениях)</label>
+                <input value={cfg.public_url ?? ''} onChange={e => set('public_url', e.target.value)} className={inputCls} placeholder="https://camera.example.com" />
+              </div>
+              <div>
+                <label className={labelCls}>Видео события: секунд ДО срабатывания</label>
+                <input type="number" value={cfg.clip_pre ?? 10} onChange={e => set('clip_pre', +e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Видео события: секунд ПОСЛЕ срабатывания</label>
+                <input type="number" value={cfg.clip_post ?? 60} onChange={e => set('clip_post', +e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Качество видео события</label>
+                <select value={cfg.clip_source ?? 'main'} onChange={e => set('clip_source', e.target.value)} className={inputCls}>
+                  <option value="main">Основной поток (чётче, больше места)</option>
+                  <option value="sub">Подпоток (легче)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Фото события: секунд на выбор лучшего кадра</label>
+                <input type="number" step="0.5" value={cfg.snap_window ?? 2} onChange={e => set('snap_window', +e.target.value)} className={inputCls} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Видео в браузере</label>
+                <select value={cfg.hls_mode ?? 'low'} onChange={e => set('hls_mode', e.target.value)} className={inputCls}>
+                  <option value="low">Малая задержка (1–3 с)</option>
+                  <option value="stable">Устойчивее при слабой сети (задержка больше)</option>
+                </select>
               </div>
             </div>
           </div>
-
-          <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5 space-y-4">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <span className="text-blue-500 font-bold text-sm">VK</span> ВКонтакте
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Ключ доступа сообщества</label>
-                <input
-                  type="password"
-                  value={settings.vkToken}
-                  onChange={e => update('vkToken', e.target.value)}
-                  placeholder="Ключ доступа"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">ID или короткое имя страницы</label>
-                <input
-                  type="text"
-                  value={settings.vkPeerId}
-                  onChange={e => update('vkPeerId', e.target.value)}
-                  placeholder="ivan_petrov"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5 space-y-4">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <span className="text-purple-400 font-bold text-sm">🎤</span> Алиса (Яндекс)
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">OAuth-токен</label>
-                <input
-                  type="password"
-                  value={settings.yandexToken}
-                  onChange={e => update('yandexToken', e.target.value)}
-                  placeholder="OAuth-токен"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">ID сценария</label>
-                <input
-                  type="text"
-                  value={settings.yandexScenarioId}
-                  onChange={e => update('yandexScenarioId', e.target.value)}
-                  placeholder="ID сценария"
-                  className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-                />
-              </div>
-            </div>
-          </div>
-
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/10 text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition border border-blue-500/20">
-            <TestTube className="w-4 h-4" /> Отправить тестовое уведомление
+          <button onClick={handleSave} disabled={saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-400 disabled:opacity-50">
+            <Save className="w-4 h-4" /> {saving ? 'Сохранение…' : 'Сохранить'}
           </button>
         </div>
       )}
 
-      {/* Clips */}
-      {activeTab === 'clips' && (
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Film className="w-4 h-4 text-gray-500" /> Видео событий
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Секунд ДО срабатывания</label>
-              <input
-                type="number"
-                value={settings.clipPre}
-                onChange={e => update('clipPre', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
+      {tab === 'cameras' && (
+        <div className="space-y-4">
+          {(cfg.cameras || []).map((c: any) => (
+            <div key={c.name} className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium flex items-center gap-2"><Camera className="w-4 h-4 text-emerald-400" /> {c.name}</p>
+                  <p className="text-xs text-gray-500 mt-1 break-all">{c.url}</p>
+                </div>
+                <button onClick={() => handleDelCam(c.name)} className="p-2 text-gray-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+              </div>
+              <div className="flex gap-4 mt-3 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={!!c.record} onChange={e => toggleCam(c.name, 'record', e.target.checked)} className="accent-emerald-500" />
+                  Запись
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={!!c.detect} onChange={e => toggleCam(c.name, 'detect', e.target.checked)} className="accent-emerald-500" />
+                  Детекция
+                </label>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <a href={`/zones/${encodeURIComponent(c.name)}`} target="_blank" rel="noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-200 hover:bg-white/10">Зоны игнорирования</a>
+                <span className="text-gray-500 break-all">Подпоток: {c.detect_url || 'не задан'}</span>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input value={subEdit[c.name] ?? ''} onChange={e => setSubEdit(s => ({ ...s, [c.name]: e.target.value }))}
+                  placeholder="Ссылка на подпоток rtsp://… (пусто = убрать)" className={inputCls} />
+                <button onClick={async () => { await editCamera(c.name, { detect_url: subEdit[c.name] ?? '' }); setSubEdit(s => ({ ...s, [c.name]: '' })); refreshCams(); }}
+                  className="px-3 rounded-lg bg-emerald-500/15 text-emerald-300 text-xs font-medium hover:bg-emerald-500/25 whitespace-nowrap">Сохранить</button>
+              </div>
             </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Секунд ПОСЛЕ срабатывания</label>
-              <input
-                type="number"
-                value={settings.clipPost}
-                onChange={e => update('clipPost', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Максимальная длина, сек</label>
-              <input
-                type="number"
-                value={settings.clipMax}
-                onChange={e => update('clipMax', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Качество видео события</label>
-              <select
-                value={settings.clipSource}
-                onChange={e => update('clipSource', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              >
-                <option value="main">Основной поток (main)</option>
-                <option value="sub">Лёгкий подпоток (sub)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Папка для видео событий</label>
-              <input
-                type="text"
-                value={settings.clipDir}
-                onChange={e => update('clipDir', e.target.value)}
-                placeholder="Пусто = clips рядом с программой"
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Папка буфера</label>
-              <input
-                type="text"
-                value={settings.bufferDir}
-                onChange={e => update('bufferDir', e.target.value)}
-                placeholder="Пусто = buffer (можно RAM-диск)"
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Хранить видео событий, дней</label>
-              <input
-                type="number"
-                value={settings.clipKeepDays}
-                onChange={e => update('clipKeepDays', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
+          ))}
+
+          <div className="rounded-2xl border border-dashed border-gray-700 p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-300 flex items-center gap-2"><Plus className="w-4 h-4" /> Добавить камеру</p>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Имя (латиницей)" className={inputCls} />
+            <input value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="rtsp://user:pass@ip:554/stream1" className={inputCls} />
+            <input value={newSub} onChange={e => setNewSub(e.target.value)} placeholder="Подпоток (необязательно)" className={inputCls} />
+            <button onClick={handleAddCam} className="px-4 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 text-sm font-medium hover:bg-emerald-500/25">
+              Добавить
+            </button>
           </div>
         </div>
       )}
 
-      {/* Storage */}
-      {activeTab === 'storage' && (
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <HardDrive className="w-4 h-4 text-gray-500" /> Хранилище записей
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Длина одного файла записи, мин</label>
-              <input
-                type="number"
-                value={settings.segmentMinutes}
-                onChange={e => update('segmentMinutes', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Хранить записи, дней</label>
-              <input
-                type="number"
-                value={settings.keepDays}
-                onChange={e => update('keepDays', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Дней на основном диске до переноса</label>
-              <input
-                type="number"
-                value={settings.fastDays}
-                onChange={e => update('fastDays', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Максимум места под записи, ГБ</label>
-              <input
-                type="number"
-                value={settings.maxGb}
-                onChange={e => update('maxGb', e.target.value)}
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-xs text-gray-500 mb-1 block">Папка архива (второй диск)</label>
-              <input
-                type="text"
-                value={settings.archiveDir}
-                onChange={e => update('archiveDir', e.target.value)}
-                placeholder="Пусто = не использовать"
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
-              <p className="text-[10px] text-gray-600 mt-1">Старые записи переносятся сюда с основного диска</p>
+      {tab === 'notify' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-300">Тихие часы</p>
+            <p className="text-xs text-gray-500">В этот промежуток Telegram, VK, Макс и Алиса не получают оповещения. События и запись продолжаются. Через полночь можно: с 23:00 до 07:00.</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Не беспокоить с (ЧЧ:ММ)</label>
+                <input value={cfg.notify_quiet_start ?? ''} onChange={e => set('notify_quiet_start', e.target.value)} className={inputCls} placeholder="23:00" />
+              </div>
+              <div>
+                <label className={labelCls}>до (ЧЧ:ММ)</label>
+                <input value={cfg.notify_quiet_end ?? ''} onChange={e => set('notify_quiet_end', e.target.value)} className={inputCls} placeholder="07:00" />
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Network */}
-      {activeTab === 'network' && (
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Wifi className="w-4 h-4 text-gray-500" /> Сеть и удалённый доступ
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="text-xs text-gray-500 mb-1 block">Адрес сайта для ссылок в уведомлениях</label>
-              <input
-                type="text"
-                value={settings.publicUrl}
-                onChange={e => update('publicUrl', e.target.value)}
-                placeholder="https://..."
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-300">Telegram</p>
+            <div>
+              <label className={labelCls}>Токен бота</label>
+              <input value={cfg.telegram_token ?? ''} onChange={e => set('telegram_token', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">SSH-туннель</label>
-              <input
-                type="text"
-                value={settings.tunnel}
-                onChange={e => update('tunnel', e.target.value)}
-                placeholder="пользователь@сервер (пусто = выключен)"
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
+              <label className={labelCls}>Chat ID</label>
+              <input value={cfg.telegram_chat_id ?? ''} onChange={e => set('telegram_chat_id', e.target.value)} className={inputCls} />
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-300">ВКонтакте</p>
+            <div>
+              <label className={labelCls}>Ключ сообщества</label>
+              <input value={cfg.vk_token ?? ''} onChange={e => set('vk_token', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Доп. адрес для WebRTC (Tailscale VPN)</label>
-              <input
-                type="text"
-                value={settings.tailscaleIp}
-                onChange={e => update('tailscaleIp', e.target.value)}
-                placeholder="100.x.y.z (необязательно)"
-                className="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-              />
+              <label className={labelCls}>ID или короткое имя</label>
+              <input value={cfg.vk_peer_id ?? ''} onChange={e => set('vk_peer_id', e.target.value)} className={inputCls} />
             </div>
+          </div>
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-300">Макс</p>
+            <div>
+              <label className={labelCls}>Токен бота</label>
+              <input value={cfg.max_token ?? ''} onChange={e => set('max_token', e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>ID чата или канала</label>
+              <input value={cfg.max_chat_id ?? ''} onChange={e => set('max_chat_id', e.target.value)} className={inputCls} placeholder="число (у канала может быть со знаком минус)" />
+            </div>
+            <div>
+              <label className={labelCls}>Файл сертификата Минцифры (PEM)</label>
+              <input value={cfg.ssl_ca_file ?? ''} onChange={e => set('ssl_ca_file', e.target.value)} className={inputCls} placeholder="C:\cctv\russian_ca.pem — нужен, если Макс не отвечает из-за сертификата" />
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-300">Алиса (Яндекс)</p>
+            <div>
+              <label className={labelCls}>OAuth-токен</label>
+              <input value={cfg.yandex_token ?? ''} onChange={e => set('yandex_token', e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>ID сценария</label>
+              <input value={cfg.yandex_scenario_id ?? ''} onChange={e => set('yandex_scenario_id', e.target.value)} className={inputCls} />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={handleSave} disabled={saving}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-400 disabled:opacity-50">
+              <Save className="w-4 h-4" /> Сохранить
+            </button>
+            <button onClick={handleTest}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 text-gray-200 text-sm font-medium hover:bg-white/10">
+              <Bell className="w-4 h-4" /> Тест уведомления
+            </button>
           </div>
         </div>
       )}

@@ -1,194 +1,121 @@
-import { useState } from 'react';
-import { Archive, Calendar, Play, ChevronLeft, ChevronRight } from 'lucide-react';
-
-const cameras = ['Вход', 'Двор', 'Гараж', 'Задний двор', 'Калитка', 'Парковка'];
-
-const generateFiles = (cam: string, date: string) => {
-  const files = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 10) {
-      if (Math.random() > 0.3) {
-        files.push({
-          name: `${date}_${String(h).padStart(2, '0')}-${String(m).padStart(2, '0')}-00.mp4`,
-          time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
-          size: (Math.random() * 200 + 50).toFixed(0),
-        });
-      }
-    }
-  }
-  return files;
-};
+import { useState, useEffect, useCallback } from 'react';
+import { Archive, RefreshCw, Play, WifiOff } from 'lucide-react';
+import { getArchive, recUrl, clipUrl, todayLocal, type FileInfo } from '../api';
 
 export default function ArchivePage() {
-  const [selectedCam, setSelectedCam] = useState(cameras[0]);
-  const [selectedDate, setSelectedDate] = useState('2026-10-13');
-  const [playingFile, setPlayingFile] = useState<string | null>(null);
+  const [cameras, setCameras] = useState<string[]>([]);
+  const [cam, setCam] = useState('');
+  const [date, setDate] = useState(todayLocal);
+  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [clips, setClips] = useState<FileInfo[]>([]);
+  const [playing, setPlaying] = useState<{ kind: 'rec' | 'clip'; name: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const files = generateFiles(selectedCam, selectedDate);
-  const totalSize = files.reduce((acc, f) => acc + parseInt(f.size), 0);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await getArchive(cam || undefined, date);
+      setCameras(r.cameras);
+      if (!cam && r.cam) setCam(r.cam);
+      setFiles(r.files);
+      setClips(r.clips || []);
+      setError('');
+    } catch (e: any) {
+      setError(e.message === 'auth' ? 'Требуется вход' : 'Не удалось загрузить');
+    } finally {
+      setLoading(false);
+    }
+  }, [cam, date]);
+
+  useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Архив</h2>
-          <p className="text-sm text-gray-500 mt-1">Просмотр записей по дате и камере</p>
+          <h2 className="text-2xl font-bold tracking-tight">Архив</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{files.length} записей · {clips.length} видео событий</p>
         </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Файлов за день</p>
-          <p className="text-2xl font-bold mt-1">{files.length}</p>
-        </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Объём</p>
-          <p className="text-2xl font-bold mt-1 text-cyan-400">{(totalSize / 1024).toFixed(1)} ГБ</p>
-        </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Всего на диске</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">142.3 ГБ</p>
-        </div>
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-500">Свободно</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">157.7 ГБ</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={selectedCam}
-          onChange={e => setSelectedCam(e.target.value)}
-          className="bg-[#161b22] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
-        >
-          {cameras.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              const d = new Date(selectedDate);
-              d.setDate(d.getDate() - 1);
-              setSelectedDate(d.toISOString().split('T')[0]);
-            }}
-            className="p-2 rounded-lg bg-[#161b22] border border-gray-800 hover:border-gray-700"
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={cam}
+            onChange={e => setCam(e.target.value)}
+            className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-emerald-500/50"
           >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+            {cameras.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
           <input
             type="date"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            className="bg-[#161b22] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-emerald-500/50"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-emerald-500/50"
           />
-          <button
-            onClick={() => {
-              const d = new Date(selectedDate);
-              d.setDate(d.getDate() + 1);
-              setSelectedDate(d.toISOString().split('T')[0]);
-            }}
-            className="p-2 rounded-lg bg-[#161b22] border border-gray-800 hover:border-gray-700"
-          >
-            <ChevronRight className="w-4 h-4" />
+          <button onClick={load} className="p-2 rounded-lg hover:bg-white/5 text-gray-400">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* Player */}
-      {playingFile && (
-        <div className="bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden">
-          <div className="aspect-video bg-black flex items-center justify-center">
-            <div className="text-center">
-              <Play className="w-12 h-12 text-emerald-500/40 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">Воспроизведение: {playingFile}</p>
-              <p className="text-xs text-gray-600 mt-1">Камера: {selectedCam}</p>
-            </div>
-          </div>
-          <div className="p-3 flex items-center justify-between border-t border-gray-800">
-            <span className="text-xs text-gray-500">{playingFile}</span>
-            <button
-              onClick={() => setPlayingFile(null)}
-              className="text-xs text-gray-500 hover:text-gray-300"
-            >
-              Закрыть
-            </button>
+      {error && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-center gap-3">
+          <WifiOff className="w-5 h-5 text-amber-400" />
+          <span className="text-amber-300 text-sm">{error}</span>
+        </div>
+      )}
+
+      {playing && (
+        <div className="rounded-2xl overflow-hidden bg-black border border-white/10 aspect-video">
+          <video key={playing.kind + playing.name} src={playing.kind === 'clip' ? clipUrl(`${cam}/${playing.name}`) : recUrl(cam, playing.name)} controls autoPlay playsInline className="w-full h-full" />
+        </div>
+      )}
+
+      {clips.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-orange-300">🎬 Видео событий</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {clips.map(f => (
+              <button key={f.name} onClick={() => setPlaying({ kind: 'clip', name: f.name })}
+                className={`rounded-xl border p-3 text-left transition ${playing?.kind === 'clip' && playing.name === f.name ? 'border-orange-400/60 bg-orange-500/15' : 'border-orange-500/20 bg-orange-500/[0.06] hover:border-orange-400/40'}`}>
+                <div className="flex items-center gap-2"><Play className="w-3.5 h-3.5 text-orange-300 shrink-0" /><span className="text-sm font-medium truncate">{f.time}</span></div>
+                <p className="text-[11px] text-gray-500 mt-1">{f.size_mb} МБ</p>
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Timeline */}
-      <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          Таймлайн — {selectedDate}
-        </h3>
-        <div className="flex gap-0.5 h-8 rounded-lg overflow-hidden">
-          {Array.from({ length: 48 }, (_, i) => {
-            const hasData = Math.random() > 0.2;
-            const isMotion = Math.random() > 0.7;
-            return (
-              <div
-                key={i}
-                className={`flex-1 rounded-sm transition-all cursor-pointer hover:opacity-80 ${
-                  hasData
-                    ? isMotion
-                      ? 'bg-amber-500/60'
-                      : 'bg-emerald-500/40'
-                    : 'bg-gray-800'
-                }`}
-                title={`${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 === 0 ? '00' : '30'}`}
-              />
-            );
-          })}
+      {loading && !files.length && !clips.length ? (
+        <div className="flex justify-center py-16"><RefreshCw className="w-8 h-8 animate-spin text-emerald-400" /></div>
+      ) : files.length === 0 && clips.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-700 p-12 text-center">
+          <Archive className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400">Записей за этот день нет</p>
         </div>
-        <div className="flex justify-between mt-2">
-          <span className="text-[10px] text-gray-600">00:00</span>
-          <span className="text-[10px] text-gray-600">06:00</span>
-          <span className="text-[10px] text-gray-600">12:00</span>
-          <span className="text-[10px] text-gray-600">18:00</span>
-          <span className="text-[10px] text-gray-600">24:00</span>
-        </div>
-        <div className="flex items-center gap-4 mt-3">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-emerald-500/40" />
-            <span className="text-[10px] text-gray-500">Запись</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-amber-500/60" />
-            <span className="text-[10px] text-gray-500">Движение</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-gray-800" />
-            <span className="text-[10px] text-gray-500">Нет данных</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Files grid */}
-      <div className="bg-[#161b22] rounded-xl border border-gray-800 p-4">
-        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-          <Archive className="w-4 h-4 text-gray-500" />
-          Файлы ({files.length})
-        </h3>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-          {files.map((file, idx) => (
+      ) : files.length > 0 && (
+        <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-400">Непрерывная запись</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {files.map(f => (
             <button
-              key={idx}
-              onClick={() => setPlayingFile(file.name)}
-              className={`p-2 rounded-lg text-center transition border ${
-                playingFile === file.name
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                  : 'bg-gray-900/50 border-gray-800 hover:border-gray-700 text-gray-400 hover:text-gray-200'
+              key={f.name}
+              onClick={() => setPlaying({ kind: 'rec', name: f.name })}
+              className={`rounded-xl border p-3 text-left transition ${
+                playing?.kind === 'rec' && playing.name === f.name
+                  ? 'border-emerald-500/50 bg-emerald-500/10'
+                  : 'border-white/[0.06] bg-white/[0.03] hover:border-white/15'
               }`}
             >
-              <p className="text-xs font-mono">{file.time}</p>
-              <p className="text-[10px] text-gray-600 mt-0.5">{file.size} МБ</p>
+              <div className="flex items-center gap-2">
+                <Play className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="text-sm font-medium truncate">{f.time}</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">{f.size_mb} МБ</p>
             </button>
           ))}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
